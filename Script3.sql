@@ -20,7 +20,8 @@ BEGIN
 	CREATE TABLE Customer (
 		CustomerID INT PRIMARY KEY,
 		DateOfBirth DATE NOT NULL,
-		Name VARCHAR(100) NOT NULL
+		Name VARCHAR(100) NOT NULL,
+		 CHECK (Name LIKE '[A-Za-z][A-Za-z ]%')
 	);
 END;
 
@@ -31,7 +32,8 @@ BEGIN
 		Miles INT NOT NULL,
 		Meal_Code VARCHAR(10) NOT NULL,
 		CustomerID INT,
-		FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
+		FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID),
+		CHECK(Miles >= 0)
 	);
 END;
 
@@ -39,7 +41,8 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Co
 BEGIN
 	CREATE TABLE Country (
 		CountryID INT PRIMARY KEY  ,
-		Name VARCHAR(100) NOT NULL
+		Name VARCHAR(100) NOT NULL,
+		CHECK (Name LIKE '[A-Za-z][A-Za-z ]%')
 	);
 END;
 
@@ -49,7 +52,8 @@ BEGIN
 		CityID INT PRIMARY KEY  ,
 		Name VARCHAR(100) NOT NULL,
 		CountryID INT,
-		FOREIGN KEY (CountryID) REFERENCES Country(CountryID)
+		FOREIGN KEY (CountryID) REFERENCES Country(CountryID),
+		CHECK (Name LIKE '[A-Za-z][A-Za-z ]%')
 	);
 END;
 
@@ -59,7 +63,8 @@ BEGIN
 		AirportID INT PRIMARY KEY  ,
 		Name VARCHAR(100) NOT NULL,
 		CityID INT,
-		FOREIGN KEY (CityID) REFERENCES City(CityID)
+		FOREIGN KEY (CityID) REFERENCES City(CityID),
+		CHECK (Name LIKE '[A-Za-z][A-Za-z ]%')
 	);
 END;
 
@@ -78,17 +83,24 @@ BEGIN
 		AirplaneID INT PRIMARY KEY  ,
 		RegistrationNumber VARCHAR(50) NOT NULL,
 		BeginOfOperation DATE NOT NULL,
-		Status VARCHAR(50),
+		Status VARCHAR(50) NOT NULL,
 		PlaneModelID INT,
 		FOREIGN KEY (PlaneModelID) REFERENCES PlaneModel(PlaneModelID)
 	);
 END;
+GO
+
+CREATE INDEX IDX_Airplane_PlaneModelID
+ON Airplane (PlaneModelID);
+GO
+
 
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[category_pasaje]') AND type in (N'U'))
 BEGIN
     CREATE TABLE category_pasaje(
         id INT PRIMARY KEY,
-        nombre VARCHAR(60) NOT NULL
+        nombre VARCHAR(60) NOT NULL,
+		CHECK (nombre LIKE '[A-Za-z][A-Za-z ]%')
     );
 END;
 
@@ -103,6 +115,11 @@ BEGIN
 		FOREIGN KEY (id_category_pasaje) REFERENCES category_pasaje(id)
 	);
 END;
+GO
+
+CREATE INDEX IDX_Ticket_CustomerID
+ON Ticket (CustomerID);
+GO
 
 
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[FlightNumber]') AND type in (N'U'))
@@ -118,10 +135,21 @@ BEGIN
 		PlaneModelID INT NOT NULL,
 		FOREIGN KEY (StartAirportID) REFERENCES Airport(AirportID),
 		FOREIGN KEY (GoalAirportID) REFERENCES Airport(AirportID),
-		FOREIGN KEY (PlaneModelID) REFERENCES PlaneModel(PlaneModelID)
+		FOREIGN KEY (PlaneModelID) REFERENCES PlaneModel(PlaneModelID),
+		CHECK (StartAirportID <> GoalAirportID)
 	);
 END;
+GO
 
+CREATE INDEX IDX_FlightNumber_StartAirportID
+ON FlightNumber (StartAirportID);
+GO
+
+
+
+CREATE INDEX IDX_FlightNumber_GoalAirportID
+ON FlightNumber (GoalAirportID);
+GO
 
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Flight]') AND type in (N'U'))
 BEGIN
@@ -132,10 +160,11 @@ BEGIN
 		Gate VARCHAR(50) NOT NULL,
 		CheckInCounter VARCHAR(50) NOT NULL,
 		FlightNumberID INT NOT NULL,
-		FOREIGN KEY (FlightNumberID) REFERENCES FlightNumber(FlightNumberID)
+		FOREIGN KEY (FlightNumberID) REFERENCES FlightNumber(FlightNumberID),
+		CHECK (FlightDate >= CAST(GETDATE() AS DATE)),
+		CHECK (CAST(BoardingTime AS DATE) = FlightDate)
 	);
 END;
-
 
 
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Seat]') AND type in (N'U'))
@@ -188,7 +217,8 @@ BEGIN
 		Number INT NOT NULL,
 		Weight DECIMAL(5, 2) NOT NULL,
 		CouponID INT NOT NULL,
-		FOREIGN KEY (CouponID) REFERENCES Coupon(CouponID)
+		FOREIGN KEY (CouponID) REFERENCES Coupon(CouponID),
+		CHECK (Weight >= 0.01 AND Weight <= 999.99)
 	);
 END;
 
@@ -227,21 +257,7 @@ END;
 
 GO
 
-CREATE INDEX IDX_Ticket_CustomerID
-ON Ticket (CustomerID);
-GO
 
-CREATE INDEX IDX_Airplane_PlaneModelID
-ON Airplane (PlaneModelID);
-GO
-
-CREATE INDEX IDX_FlightNumber_StartAirportID
-ON FlightNumber (StartAirportID);
-GO
-
-CREATE INDEX IDX_FlightNumber_GoalAirportID
-ON FlightNumber (GoalAirportID);
-GO
 
 INSERT INTO Customer (CustomerID, DateOfBirth, Name) VALUES
 (1, '1985-02-15', 'John Doe'),
@@ -372,7 +388,7 @@ INSERT INTO FlightNumber (FlightNumberID, DepartureTime, Description, Type, Airl
 (7, '2024-08-31 11:00:00', 'Midday Flight to Beijing', 'International', 'Airways G', 1, 10, 7),
 (8, '2024-08-31 14:00:00', 'Afternoon Flight to Toronto', 'International', 'Airways H', 1, 2, 8),
 (9, '2024-08-31 17:00:00', 'Evening Flight to Madrid', 'International', 'Airways I', 1, 7, 9),
-(10, '2024-08-31 20:00:00', 'Night Flight to New York', 'International', 'Airways J', 1, 1, 10);
+(10, '2024-08-31 20:00:00', 'Night Flight to New York', 'International', 'Airways J', 1, 6, 10);
 GO
 
 INSERT INTO Flight (FlightID, BoardingTime, FlightDate, Gate, CheckInCounter, FlightNumberID) VALUES
